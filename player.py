@@ -1,9 +1,10 @@
 import pygame
 from settings import *
 from addons import *
+from entity import Entity
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, groups, obstacle_sprite, create_attack):
+class Player(Entity):
+    def __init__(self, pos, groups, obstacle_sprite, create_attack, destroy_attack, create_magic):
         super().__init__(groups)
         self.image = pygame.transform.scale2x(pygame.image.load('graphics/tile/char_start.png').convert_alpha())
         self.rect = self.image.get_rect(topleft = pos)
@@ -13,26 +14,55 @@ class Player(pygame.sprite.Sprite):
         #graphics
         self.import_player_assets() 
         self.status = 'down'
-        self.frame_index = 0
-        self.animation_speed = 0.11
+        
         
         #move
-        self.direction = pygame.math.Vector2()
+        
         self.speed = 4
         self.attacking = False
-        self.attack_cooldown = 400
+        self.attack_cooldown = 100
         self.attack_time = None
-        self.create_attack = create_attack
-
         self.obstacle_sprite = obstacle_sprite
 
-    def import_player_assets(self):
+        #weapons
+        self.weapons_lib = weapon_generate(weapon_data, "graphics/tile/weapons.png")
+
+        #cur_weapon
+        self.create_attack = create_attack
+        self.destroy_attack = destroy_attack
+        self.weapon_id = 0
+        self.weapon = list(weapon_data.keys())[self.weapon_id]
+        self.switchable_weapon = True
+        self.weapon_switch_time = None 
+        self.switch_cooldown = 200
+
+        #magic
+        self.create_magic = create_magic
+        self.magic_id = 0
+        self.magic = list(magic_spells.keys())[self.magic_id]
+        self.switchable_magic = True
+        self.magic_switch_time = None
+
+
+        #stats
+        self.stats = {"health":100, 'energy':60, "damage":10, "magic":4, "speed":6}
+        self.health = self.stats["health"]
+        self.energy = self.stats["energy"]
+        self.speed = self.stats["speed"]
+        self.exp = 5   
+
+        #get damage
+        self.can_get_damage = True
+        self.hurt_time = None
+        self.immortal_duration = 500   
+
+
+    def import_player_assets(self): 
         path = "graphics/tile/charr2F.png"
         sprites = import_tileset(path, scale=True)[:0:-1]
         self.animations = {
             'down_idle':[], 'down':[], 'up_idle':[], 'up':[], 'right_idle':[], 'right':[], 'left_idle':[], 'left':[]
         }
-        print('down_idle'[-1:-5:-1])
         for i in self.animations.keys():
             if i[-1:-5:-1] == 'eldi':
                 self.animations[i] = [sprites.pop() for i in range(2)]
@@ -42,7 +72,7 @@ class Player(pygame.sprite.Sprite):
         self.animations["down_attack"] = self.animations["down_idle"]
         self.animations["right_attack"] = self.animations["right_idle"]
         self.animations["left_attack"] = self.animations["left_idle"]
-        print(self.animations)
+        
         
 
     def input(self):
@@ -76,45 +106,75 @@ class Player(pygame.sprite.Sprite):
                 self.attacking = True
                 self.attack_time = pygame.time.get_ticks()
                 self.create_attack()
+                
             #magic
             if keys[pygame.K_LCTRL]:
                 self.attacking = True
                 self.attack_time = pygame.time.get_ticks()
-                print("magic")
+                style = list(magic_spells.keys())[self.magic_id] 
+                
+                strength = list(magic_spells.values())[self.magic_id]['strength'] + self.stats['magic']
+                cost = list(magic_spells.values())[self.magic_id]['cost']
 
-    def move(self, speed):
-        if self.direction.magnitude() != 0:
-            self.direction = self.direction.normalize()
-        # self.rect.center += self.direction * speed
-        self.hitbox.x += self.direction.x * speed
-        self.collisson("horizontal")
-        self.hitbox.y += self.direction.y * speed
-        self.collisson("vertical")
-        self.rect.center = self.hitbox.center
+                self.create_magic(style, strength, cost)
+            #switch weapon qe
+            if keys[pygame.K_q] and self.switchable_weapon:
+                self.switchable_weapon = False
+                self.weapon_switch_time = pygame.time.get_ticks()
+                if self.weapon_id < len(list(weapon_data.keys())) - 1:
+                    self.weapon_id +=1
+                else:
+                    self.weapon_id = 0
 
-    def collisson(self, direction):
-        if direction == "horizontal":
-            for sprite in self.obstacle_sprite:
-                if sprite.hitbox.colliderect(self.hitbox):
-                    if self.direction.x > 0:
-                        self.hitbox.right = sprite.hitbox.left
-                    if self.direction.x < 0:
-                        self.hitbox.left = sprite.hitbox.right 
+                self.weapon = list(weapon_data.keys())[self.weapon_id] 
+            if keys[pygame.K_e] and self.switchable_weapon:
+                self.switchable_weapon = False
+                self.weapon_switch_time = pygame.time.get_ticks()
+                if self.weapon_id > 0:
+                    self.weapon_id -=1
+                else:
+                    self.weapon_id = len(list(weapon_data.keys()))-1
+                self.weapon = list(weapon_data.keys())[self.weapon_id] 
 
-        if direction == "vertical":
-             for sprite in self.obstacle_sprite:
-                if sprite.hitbox.colliderect(self.hitbox):
-                    if self.direction.y < 0:
-                        self.hitbox.top = sprite.hitbox.bottom
-                    if self.direction.y > 0:
-                        self.hitbox.bottom = sprite.hitbox.top 
+            #switch magic ad
+            if keys[pygame.K_a] and self.switchable_magic:
+                self.switchable_magic = False
+                self.magic_switch_time = pygame.time.get_ticks()
+                if self.magic_id < len(list(magic_spells.keys())) - 1:
+                    self.magic_id +=1
+                else:
+                    self.magic_id = 0
+                self.magic = list(magic_spells.keys())[self.magic_id] 
+
+            if keys[pygame.K_d] and self.switchable_magic:
+                self.switchable_magic = False
+                self.magic_switch_time = pygame.time.get_ticks()
+                if self.magic_id > 0:
+                    self.magic_id -=1
+                else:
+                    self.magic_id = len(list(magic_spells.keys()))-1
+                self.magic = list(magic_spells.keys())[self.magic_id] 
+ 
     
     def cooldowns(self):
         cur_time = pygame.time.get_ticks()
 
         if self.attacking:
-            if cur_time - self.attack_time >= self.attack_cooldown:
+            if cur_time - self.attack_time >= self.attack_cooldown + weapon_data[self.weapon]["cooldown"]:
                 self.attacking = False
+                self.destroy_attack()
+        
+        if not self.switchable_weapon:
+            if cur_time - self.weapon_switch_time >= self.switch_cooldown:
+                self.switchable_weapon = True
+
+        if not self.switchable_magic:
+            if cur_time - self.magic_switch_time >= self.switch_cooldown:
+                self.switchable_magic = True
+
+        if not self.can_get_damage:
+            if cur_time - self.hurt_time >= self.immortal_duration:
+                self.can_get_damage = True
 
     def get_status(self):
         if self.direction.x == 0 and self.direction.y == 0:
@@ -145,10 +205,33 @@ class Player(pygame.sprite.Sprite):
         self.image:pygame.Surface = animation[int(self.frame_index)]
         self.rect = self.image.get_rect(center = self.hitbox.center)
 
+        if not self.can_get_damage:
+            alpha = self.wave_value()
+            self.image.set_alpha(alpha)
+        else:
+            self.image.set_alpha(255)
+
+    def energy_recovery(self):
+        if self.energy < self.stats["energy"]:
+            self.energy += 0.01 * self.stats['magic']
+        else:
+            self.energy = self.stats["energy"]
+
+    def get_full_weapon_damage(self):
+        base_damage = self.stats['damage']
+        weapon_damage = weapon_data[self.weapon]["base_damage"]
+        return base_damage + weapon_damage
+    
+    def get_full_magic_damage(self):
+        base_damage = self.stats['magic']
+        spell_damage = magic_spells[self.magic]["strength"]
+        return base_damage + spell_damage
+
     def update(self):
         self.input()
         self.cooldowns()
         self.get_status()
         self.animation()
         self.move(self.speed)
+        self.energy_recovery()
 

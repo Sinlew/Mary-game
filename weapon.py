@@ -6,11 +6,12 @@ class Weapon(pygame.sprite.Sprite):
         super().__init__(groups)
 
         direction = player.status.split("_")[0]
-
-        print(direction)
-
+        self.sprite_type = "weapon"
+        
+          
         #graphic
-        self.image = pygame.Surface((40,40))
+        self.image = player.weapons_lib[player.weapon][direction] 
+        
 
         #place
         if direction == 'right':

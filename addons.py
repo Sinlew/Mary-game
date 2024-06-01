@@ -46,3 +46,12 @@ def import_tileset(path:str, scale=False) -> list:
 
     return surface_list
 
+def weapon_generate(weapons:dict, path:str):
+    tile =  import_tileset(path, scale=True)
+    for i in weapons.keys():
+        weapons[i]["right"]=tile[weapons[i]["graphic_start"]]
+        weapons[i]["left"]=tile[weapons[i]["graphic_start"]+1]
+        weapons[i]["down"]=tile[weapons[i]["graphic_start"]+2]
+        weapons[i]["up"]=tile[weapons[i]["graphic_start"]+3]
+    return weapons
+    
