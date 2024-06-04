@@ -8,7 +8,7 @@ class Player(Entity):
         super().__init__(groups)
         self.image = pygame.transform.scale2x(pygame.image.load('graphics/tile/char_start.png').convert_alpha())
         self.rect = self.image.get_rect(topleft = pos)
-        self.hitbox = self.rect.inflate(0, -5)#изменяет размер хитбокса играка игрока сверху и сниху
+        self.hitbox = self.rect.inflate(-15, -20)#изменяет размер хитбокса играка игрока сверху и сниху
         
 
         #graphics
@@ -46,10 +46,12 @@ class Player(Entity):
 
         #stats
         self.stats = {"health":100, 'energy':60, "damage":10, "magic":4, "speed":6}
+        self.max_stats = {"health":500, 'energy':200, "damage":40, "magic":20, "speed":10}
+        self.upgrade_cost = {"health":100, 'energy':150, "damage":150, "magic":200, "speed":200}
         self.health = self.stats["health"]
         self.energy = self.stats["energy"]
         self.speed = self.stats["speed"]
-        self.exp = 5   
+        self.exp = 500
 
         #get damage
         self.can_get_damage = True
@@ -227,11 +229,17 @@ class Player(Entity):
         spell_damage = magic_spells[self.magic]["strength"]
         return base_damage + spell_damage
 
+    def get_value_by_id(self , id):
+        return list(self.stats.values())[id]
+
+    def cost_by_id(self, id):
+        return list(self.upgrade_cost.values())[id]
+
     def update(self):
         self.input()
         self.cooldowns()
         self.get_status()
         self.animation()
-        self.move(self.speed)
+        self.move(self.stats['speed'])
         self.energy_recovery()
 

@@ -2,14 +2,15 @@ import pygame
 from settings import *
 from entity import Entity
 from addons import import_tileset
+from random import randint, choice
 
 class Enemy(Entity):
-    def __init__(self, monster_name, pos, groups, obstacle_sprites, damage_player, trigger_death_particles):
+    def __init__(self, pos, groups, obstacle_sprites, damage_player, trigger_death_particles, add_exp):
         super().__init__(groups)
         self.sprite_type = "enemy"
 
         #graphic
-        self.import_graphics(monster_name)
+        self.import_graphics("borb")
         self.status = "idle"
         self.image = self.animations[self.status][self.frame_index] 
         
@@ -20,28 +21,34 @@ class Enemy(Entity):
         self.obstacle_sprite = obstacle_sprites
 
         #stats
-        self.monster_name = monster_name
-        monstaer_info = enemy[monster_name]
-        self.health = monstaer_info['health']
-        self.exp = monstaer_info['exp']
-        self.damage = monstaer_info['damage']
-        self.attack_type = monstaer_info["attack_type"]
-        self.speed = monstaer_info["speed"]
-        self.resist = monstaer_info["resist"]
-        self.attack_radius = monstaer_info["attack_radius"]
-        self.notice_radius = monstaer_info["notice_radius"]
+        self.tier = choice(tier)
+        self.monster_name = "borb"
+        monster_stats = enemy_tier_stats[self.tier]
+        self.health = randint(monster_stats['health'][0],monster_stats['health'][1])
+        self.damage = randint(monster_stats['damage'][0],monster_stats['damage'][1])
+        self.attack_type = "punch"
+        self.speed = randint(monster_stats['speed'][0],monster_stats['speed'][1])
+        self.resist = randint(monster_stats["resist"][0],monster_stats["resist"][1])
+        self.attack_radius = randint(monster_stats["attack_radius"][0],monster_stats["attack_radius"][1])
+        self.notice_radius = randint(monster_stats["notice_radius"][0],monster_stats["notice_radius"][1])
 
         #interaction
         self.can_attack = True
         self.attack_time = None
-        self.attack_cooldown = 400
+        self.attack_cooldown = randint(monster_stats['attack_cooldown'][0],monster_stats['attack_cooldown'][1])
         self.damage_player = damage_player
         self.trigger_death_particles = trigger_death_particles
+        self.add_exp = add_exp
+
 
         #immortal time
         self.can_get_damage = True
         self.hit_time = None
         self.immortal_duration = 300
+
+        self.exp = (self.health + self.damage*3 + self.speed*10 + self.resist*10 + self.attack_radius//2 + self.notice_radius //2 + self.attack_cooldown // 2) //2
+        
+        print(f'tier: {self.tier}, exp: {self.exp}')
 
     def import_graphics(self, name):
         self.animations = {"idle":[], "move":[], "attack":[]}
@@ -135,6 +142,7 @@ class Enemy(Entity):
         if self.health < 0:
             self.kill()
             self.trigger_death_particles(self.rect.center, "white")
+            self.add_exp(self.exp)
     
     def hit_reaction(self):
         if not self.can_get_damage:

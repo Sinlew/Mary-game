@@ -17,12 +17,16 @@ class Game:
     def run(self):
         while True:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or self.level.hero_is_dead():
                     pygame.quit()
                     sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p:
+                        self.level.toggle_menu()
                 
+                    
 
-            self.screen.fill('black')
+
             self.level.run()
             pygame.display.update()
             self.clock.tick(FPS)

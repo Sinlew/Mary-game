@@ -11,13 +11,15 @@ from ui import Ui
 from enemy import Enemy
 from particle import AnimationPlayer 
 from magic import MagicPlayer
-
+from upgrade_menu import  Upgrade
+from random import choice
 
 class Level:
     def __init__(self) -> None:
         
         #get display 
         self.display_surface = pygame.display.get_surface()
+        self.game_paused = False
 
         #sprite group setup
         self.visible_sprites = SortCameraGroup()
@@ -28,6 +30,9 @@ class Level:
         self.attack_sprite = pygame.sprite.Group()
         self.attackable_sprite = pygame.sprite.Group()
 
+        #spawn
+        self.last_spawn = pygame.time.get_ticks()
+
         #sprite setup
         self.create_map()
 
@@ -35,11 +40,17 @@ class Level:
         self.ui = Ui()
         self.ui.get_weapon_graphic(self.player)
 
+        self.upgrade = Upgrade(self.player)
+
         #particle
         self.animation_player = AnimationPlayer()
         self.magic_player = MagicPlayer(self.animation_player)
+
+        
         
     def create_map(self):
+        print("map create")
+        
         layouts = {
             'borders': import_csv_layout("graphics/map/map_zone.csv"),
             'decor': import_csv_layout("graphics/map/map_decor.csv"),
@@ -68,7 +79,7 @@ class Level:
                             flower = graphics['green'][int(col)]
                             Tile((x,y), [self.visible_sprites, self.attackable_sprite], 'green', flower)
                         if style == "entity":
-                            if col == "27":
+                            if col == "1":
                                 self.player = Player(
                                             (x,y), 
                                             [self.visible_sprites], 
@@ -77,18 +88,15 @@ class Level:
                                             self.destroy_attack, 
                                             self.create_magic)
                             else:
-                                if col == "2":monster_name = "c"
-                                elif col == "0": monster_name = "b"
-                                elif col == "7": monster_name = "borb"
-                                elif col == "9": monster_name = "d"
-                                elif col == "50":monster_name = "e"
-                                Enemy(monster_name, 
-                                      (x,y), 
+                                Enemy((x,y), 
                                       [self.visible_sprites, self.attackable_sprite], 
                                       self.obstacle_sprites, 
                                       self.damage_player,
-                                      self.trigger_death_particle)
-        
+                                      self.trigger_death_particle, 
+                                      self.add_exp)
+                                
+                                
+                                      
     def create_attack(self):
         self.curr_attack_sprite = Weapon(self.player, [self.visible_sprites, self.attack_sprite])
 
@@ -98,7 +106,6 @@ class Level:
             
         if style == "fire":
             self.magic_player.flame(self.player, cost, [self.visible_sprites, self.attack_sprite])
-            print("flame")
 
     def destroy_attack(self):
         if self.curr_attack_sprite:
@@ -107,10 +114,18 @@ class Level:
 
     def damage_player(self, damage, attack_type):
         if self.player.can_get_damage:
-            self.player.health -= damage
-            self.player.can_get_damage = False
-            self.player.hurt_time = pygame.time.get_ticks()
-            self.animation_player.create_particles(attack_type, self.player.rect.center, [self.visible_sprites])
+            if self.player.health>=0:
+
+                self.player.health -= damage
+                self.player.can_get_damage = False
+                self.player.hurt_time = pygame.time.get_ticks()
+                self.animation_player.create_particles(attack_type, self.player.rect.center, [self.visible_sprites])
+            
+    def hero_is_dead(self):
+        if self.player.health <= 0:
+            return True
+        return False
+                
 
     def trigger_death_particle(self, pos, particle_type):
 
@@ -129,17 +144,46 @@ class Level:
                         else:
                             target_sprite.get_damage(self.player, attack_sprite.sprite_type)
 
+    def add_exp(self, amout):
+        self.player.exp += amout
+
+    def toggle_menu(self):
+
+        self.game_paused = not self.game_paused
+
+    def enemy_spawn(self):
+        cur_time = pygame.time.get_ticks()
+        
+        if cur_time - self.last_spawn >= random.randint(1000, 10000):
+            pose = (random.randint(2560, 5440),random.randint(2112, 5312))
+            
+            Enemy(pose,
+                  [self.visible_sprites, self.attackable_sprite], 
+                    self.obstacle_sprites, 
+                    self.damage_player,
+                    self.trigger_death_particle, 
+                    self.add_exp)
+            self.last_spawn = pygame.time.get_ticks()
+
+
     def run(self):
         """
         update and draw game
         """
-        
         self.visible_sprites.custom_draw(self.player)
-        self.visible_sprites.update()
-        self.visible_sprites.enemy_update(self.player)
-        self.player_attack_logic()
         self.ui.display(self.player)
-        # debug(self.player.status)
+        if self.game_paused:
+            self.upgrade.display()
+        else:
+            self.visible_sprites.update()
+            self.visible_sprites.enemy_update(self.player)
+            self.player_attack_logic()
+            self.enemy_spawn()
+        
+        
+        
+        
+        # debug(self.player.hitbox.center)
 
 class SortCameraGroup(pygame.sprite.Group):
     def __init__(self) -> None:
@@ -151,7 +195,7 @@ class SortCameraGroup(pygame.sprite.Group):
 
         #подключение текстуры пола 
         self.floor_surface = pygame.transform.scale2x(pygame.image.load("graphics/map/map.png").convert())
-        self.floor_rect = self.floor_surface.get_rect(topleft = (0,0))
+        self.floor_rect = self.floor_surface.get_rect(topleft = (0,15))
 
 
     def custom_draw(self, player):
