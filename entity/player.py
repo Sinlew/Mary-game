@@ -1,7 +1,7 @@
 import pygame
-from settings import *
-from addons import *
-from entity import Entity
+from addons.settings import *
+from addons.addons import *
+from entity.entity import Entity
 
 class Player(Entity):
     def __init__(self, pos, groups, obstacle_sprite, create_attack, destroy_attack, create_magic):

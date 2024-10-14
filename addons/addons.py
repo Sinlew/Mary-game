@@ -2,7 +2,7 @@ from csv import reader
 from os import walk
 
 import pygame
-from settings import TILESIZE
+from addons.settings import TILESIZE
 
 def import_csv_layout(path:str) -> list:
     terrarian_map = []

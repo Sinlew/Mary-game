@@ -1,5 +1,5 @@
 import pygame
-from settings import *
+from addons.settings import *
 
 class Upgrade:
     def __init__(self, player) -> None:

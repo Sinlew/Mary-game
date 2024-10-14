@@ -1,5 +1,5 @@
 import pygame
-from settings import *
+from addons.settings import *
 
 class Ui:
     def __init__(self) -> None:

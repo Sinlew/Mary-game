@@ -1,17 +1,17 @@
 from typing import Iterable
 import pygame, random
 from pygame.sprite import AbstractGroup
-from settings import *
-from tile import Tile
-from player import Player
-from debug import debug
-from addons import *
-from weapon import Weapon
-from ui import Ui
-from enemy import Enemy
-from particle import AnimationPlayer 
-from magic import MagicPlayer
-from upgrade_menu import  Upgrade
+from addons.settings import *
+from map.tile import Tile
+from entity.player import Player
+from addons.debug import debug
+from addons.addons import *
+from items.weapon import Weapon
+from ui.ui import Ui
+from entity.enemy import Enemy
+from addons.particle import AnimationPlayer 
+from items.magic import MagicPlayer
+from ui.upgrade_menu import  Upgrade
 from random import choice
 
 class Level:

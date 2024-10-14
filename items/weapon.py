@@ -1,5 +1,5 @@
 import pygame
-from player import Player
+from entity.player import Player
 
 class Weapon(pygame.sprite.Sprite):
     def __init__(self, player:Player, groups):

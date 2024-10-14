@@ -1,5 +1,5 @@
 import pygame
-from addons import import_tileset
+from addons.addons import import_tileset
 from random import choice
 
 

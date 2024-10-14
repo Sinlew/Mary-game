@@ -1,7 +1,7 @@
 import pygame
-from settings import *
-from entity import Entity
-from addons import import_tileset
+from addons.settings import *
+from entity.entity import Entity
+from addons.addons import import_tileset
 from random import randint, choice
 
 class Enemy(Entity):

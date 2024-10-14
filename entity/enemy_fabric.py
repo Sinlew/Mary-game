@@ -1,9 +1,9 @@
 import pygame
-from settings import *
-from entity import Entity
-from addons import import_tileset
+from addons.settings import *
+from entity.entity import Entity
+from addons.addons import import_tileset
 from random import randint
-from enemy import Enemy
+from entity.enemy import Enemy
 
 class Enemy_spawner(Entity):
     def __init__(self, pos, groups, obstacle_sprites, damage_player, trigger_death_particles, add_exp):
